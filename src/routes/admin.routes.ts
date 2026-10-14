@@ -9,7 +9,7 @@ import { grantsRepository } from '@/repositories/grants.repository';
 import { jobsRepository } from '@/repositories/jobs.repository';
 import { webhooksRepository } from '@/repositories/webhooks.repository';
 import { googleDriveService, GoogleDriveError } from '@/services/google-drive-service';
-import { normalizeEmail, isValidEmail } from '@/services/payment-service';
+import { normalizeEmail } from '@/services/payment-service';
 
 export const adminRouter = new Hono<{
   Bindings: WorkerEnv;
@@ -56,9 +56,12 @@ adminRouter.post('/products/validate-folder', async (c) => {
     });
   } catch (err: unknown) {
     if (err instanceof GoogleDriveError) {
+      const statusCode = (err.statusCode && err.statusCode >= 400 && err.statusCode <= 599)
+        ? (err.statusCode as 400 | 403 | 404 | 500)
+        : 400;
       return c.json(
         { error: { code: err.code, message: err.message } },
-        err.statusCode || 400
+        statusCode
       );
     }
     return c.json(

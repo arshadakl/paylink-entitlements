@@ -102,7 +102,13 @@ export const productsRepository = {
   async update(
     db: D1Database,
     id: string,
-    updates: Partial<Pick<Product, 'name' | 'description' | 'drive_folder_id' | 'expected_amount_paise' | 'active'>>
+    updates: {
+      name?: string | undefined;
+      description?: string | null | undefined;
+      drive_folder_id?: string | undefined;
+      expected_amount_paise?: number | undefined;
+      active?: number | undefined;
+    }
   ): Promise<void> {
     const setClauses: string[] = ['updated_at = ?'];
     const values: (string | number | null)[] = [new Date().toISOString()];

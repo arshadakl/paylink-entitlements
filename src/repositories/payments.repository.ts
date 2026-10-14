@@ -1,12 +1,12 @@
 import type { Payment, AccessStatus } from '@/types';
 
 export interface PaymentListFilters {
-  page?: number;
-  limit?: number;
-  access_status?: AccessStatus;
-  product_id?: string;
-  normalized_email?: string;
-  razorpay_link_id?: string;
+  page?: number | undefined;
+  limit?: number | undefined;
+  access_status?: AccessStatus | undefined;
+  product_id?: string | undefined;
+  normalized_email?: string | undefined;
+  razorpay_link_id?: string | undefined;
 }
 
 export interface PaginatedResult<T> {
