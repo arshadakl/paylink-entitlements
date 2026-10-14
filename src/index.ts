@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
 import type { WorkerEnv } from './config/env';
 import { healthRouter } from './routes/health.routes';
+import { webhookRouter } from './routes/webhook.routes';
 
 const app = new Hono<{ Bindings: WorkerEnv }>();
 
 // API routes mounted under /api
 app.route('/api', healthRouter);
+app.route('/api/webhooks', webhookRouter);
 
 // Cloudflare Worker export with fetch, queue, and scheduled (cron) handlers
 export default {
