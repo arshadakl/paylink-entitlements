@@ -1,0 +1,31 @@
+{
+  "name": "paylink-entitlements",
+  "version": "1.0.0",
+  "description": "Event-driven digital product access provisioning with Razorpay Payment Links, Cloudflare Workers, D1, Queues, and Google Drive",
+  "private": true,
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "dev:frontend": "npm run --prefix frontend dev",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:frontend\"",
+    "build": "npm run build:frontend && npm run typecheck",
+    "build:frontend": "npm run --prefix frontend build",
+    "deploy": "npm run build && wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && npm run --prefix frontend typecheck",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote"
+  },
+  "dependencies": {
+    "hono": "^4.6.14",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241230.0",
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8",
+    "wrangler": "^3.99.0"
+  }
+}

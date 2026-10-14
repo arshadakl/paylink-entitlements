@@ -1,0 +1,16 @@
+# Razorpay Webhook Secret (from Razorpay Dashboard -> Settings -> Webhooks)
+RAZORPAY_WEBHOOK_SECRET=test_razorpay_secret_12345
+# Optional: previous secret during rotation
+# RAZORPAY_WEBHOOK_SECRET_PREVIOUS=old_secret_12345
+
+# Google Drive Integration (Service Account)
+# Provide the service account client email and the RSA private key (with \n escaped or multiline in wrangler)
+GOOGLE_SERVICE_ACCOUNT_EMAIL=paylink-drive-sa@your-gcp-project.iam.gserviceaccount.com
+GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC3...\n-----END PRIVATE KEY-----\n"
+
+# Admin Dashboard Authentication
+ADMIN_USERNAME=admin
+# Secure random hex string for signing JWT/session cookies (minimum 32 characters)
+ADMIN_SESSION_SECRET=super_secret_session_encryption_key_at_least_32_chars_long
+# Admin password hash or plain secret for local testing
+ADMIN_PASSWORD=change_me_in_production
