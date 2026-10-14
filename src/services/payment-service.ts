@@ -93,12 +93,37 @@ export const paymentService = {
       };
     }
 
-    // 2. Validate payload structure
+    // 2. Check if event is payment_link.paid. Unrelated events are acknowledged safely.
+    const genericEvent =
+      typeof rawPayload === 'object' && rawPayload !== null && 'event' in rawPayload
+        ? (rawPayload as { event: unknown }).event
+        : undefined;
+
+    if (genericEvent !== 'payment_link.paid') {
+      const event: WebhookEvent = {
+        event_id: eventId,
+        event_type: typeof genericEvent === 'string' ? genericEvent : 'unknown',
+        razorpay_link_id: null,
+        razorpay_payment_id: null,
+        received_at: now,
+        processing_status: 'ignored',
+        reason_code: 'UNRELATED_EVENT_TYPE',
+        payload_hash: payloadHash,
+      };
+      await webhooksRepository.create(db, event);
+      return {
+        status: 'ignored',
+        reasonCode: 'UNRELATED_EVENT_TYPE',
+        enqueued: false,
+      };
+    }
+
+    // 3. Validate payment_link.paid payload structure
     const parseResult = razorpayPaymentLinkPaidPayloadSchema.safeParse(rawPayload);
     if (!parseResult.success) {
       const event: WebhookEvent = {
         event_id: eventId,
-        event_type: 'unknown',
+        event_type: 'payment_link.paid',
         razorpay_link_id: null,
         razorpay_payment_id: null,
         received_at: now,
@@ -117,26 +142,6 @@ export const paymentService = {
     const { payment_link, payment } = parseResult.data.payload;
     const linkEntity = payment_link.entity;
     const paymentEntity = payment.entity;
-
-    // 3. Verify event is payment_link.paid
-    if (parseResult.data.event !== 'payment_link.paid') {
-      const event: WebhookEvent = {
-        event_id: eventId,
-        event_type: parseResult.data.event,
-        razorpay_link_id: linkEntity.id,
-        razorpay_payment_id: paymentEntity.id,
-        received_at: now,
-        processing_status: 'ignored',
-        reason_code: 'UNRELATED_EVENT_TYPE',
-        payload_hash: payloadHash,
-      };
-      await webhooksRepository.create(db, event);
-      return {
-        status: 'ignored',
-        reasonCode: 'UNRELATED_EVENT_TYPE',
-        enqueued: false,
-      };
-    }
 
     // 4. Resolve Razorpay Payment Link ID to configured product
     const resolved = await productsRepository.findByPaymentLinkId(db, linkEntity.id);
