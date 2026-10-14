@@ -165,7 +165,171 @@ paylink-entitlements/
 
 ---
 
-## 7. Standards & Development Guidelines
+## 7. Step-by-Step Setup & Deployment Guide
+
+### 7.1 Prerequisites
+- **Node.js**: v20.x or v22.x LTS
+- **Cloudflare Account**: Free Tier (with Wrangler CLI installed globally or via npm)
+- **Razorpay Account**: Standard or Test mode with Payment Links enabled
+- **Google Cloud Platform Account**: Service account with Google Drive API enabled
+
+---
+
+### 7.2 Cloudflare Infrastructure Setup
+
+#### 1. Authenticate Wrangler
+```bash
+npx wrangler login
+```
+
+#### 2. Create Cloudflare D1 Database
+```bash
+npx wrangler d1 create paylink-db
+```
+*Note the returned `database_id` and replace the placeholder in `wrangler.jsonc`:*
+```jsonc
+"d1_databases": [
+  {
+    "binding": "DB",
+    "database_name": "paylink-db",
+    "database_id": "<YOUR_D1_DATABASE_ID>",
+    "migrations_dir": "migrations"
+  }
+]
+```
+
+#### 3. Create Cloudflare Queues
+```bash
+# Main fulfillment queue
+npx wrangler queues create drive-access-grants
+
+# Dead-letter queue
+npx wrangler queues create drive-access-grants-dlq
+```
+
+#### 4. Apply Database Migrations
+```bash
+# Local development database
+npm run migrate:local
+
+# Remote production D1 database
+npm run migrate:remote
+```
+
+---
+
+### 7.3 Google Cloud Service Account Setup
+
+1. Open the [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project (e.g., `paylink-entitlements-prod`).
+3. Enable the **Google Drive API** under **APIs & Services > Library**.
+4. Go to **IAM & Admin > Service Accounts** and click **Create Service Account**:
+   - Name: `drive-granter`
+   - Role: None required at project level (permissions are granted per folder).
+5. Open the created service account, go to the **Keys** tab, and click **Add Key > Create new key > JSON**.
+6. Note the `client_email` and `private_key` from the downloaded JSON key file.
+7. **Share your Google Drive product folders** with the service account email as **Editor** (so it can manage permissions for buyers).
+
+---
+
+### 7.4 Cloudflare Production Secrets Configuration
+
+Set the required environment secrets on Cloudflare Workers using `wrangler secret put`:
+
+```bash
+# Razorpay Webhook Secret (configured in Razorpay Dashboard)
+npx wrangler secret put RAZORPAY_WEBHOOK_SECRET
+
+# Admin credentials for dashboard access
+npx wrangler secret put ADMIN_USERNAME
+npx wrangler secret put ADMIN_PASSWORD
+
+# Admin session signing secret (random 32+ character hex or base64 string)
+npx wrangler secret put ADMIN_SESSION_SECRET
+
+# Google Cloud Service Account Email
+npx wrangler secret put GOOGLE_SERVICE_ACCOUNT_EMAIL
+
+# Google Cloud Service Account Private Key (PEM format including -----BEGIN PRIVATE KEY-----)
+npx wrangler secret put GOOGLE_PRIVATE_KEY
+```
+
+For local development, copy `.dev.vars.example` to `.dev.vars` and populate the values:
+```bash
+cp .dev.vars.example .dev.vars
+```
+
+---
+
+### 7.5 Razorpay Webhook Configuration
+
+1. Log in to the [Razorpay Dashboard](https://dashboard.razorpay.com/).
+2. Navigate to **Settings > Webhooks > Add New Webhook**.
+3. Set the **Webhook URL** to your Cloudflare Worker endpoint:
+   ```text
+   https://<your-worker-domain>.workers.dev/api/webhooks/razorpay
+   ```
+4. Enter the exact **Secret** configured in `RAZORPAY_WEBHOOK_SECRET`.
+5. Select active events:
+   - Check `payment_link.paid`
+6. Click **Save Webhook**.
+
+---
+
+### 7.6 Local Development & Testing
+
+```bash
+# Install root and frontend dependencies
+npm run install:all
+
+# Run Vitest unit & integration test suite (74 tests)
+npm test
+
+# Verify TypeScript type checks (Worker + Frontend)
+npm run typecheck
+
+# Build frontend and compile bundle
+npm run build
+
+# Start local Cloudflare Worker development server
+npm run dev
+```
+
+---
+
+### 7.7 Production Build & Deployment
+
+```bash
+# Compile frontend production bundle and deploy to Cloudflare
+npm run deploy
+```
+
+---
+
+## 8. Operational Runbook & Failure Recovery
+
+### 8.1 Missing Buyer Email Resolution
+Certain Razorpay checkout configurations (e.g., custom UPI intents) may return `payment.entity.email: null`.
+1. The system logs the webhook as `manual_review` and creates a payment record flagged `manual_review`.
+2. The Admin Dashboard highlights pending manual reviews in the **Manual Review** metric card.
+3. Open the **Transactions** tab, find the highlighted row, and click **Resolve**.
+4. Enter the buyer's Google account email.
+5. The system normalizes the email, creates the access grant, and immediately dispatches an outbox job to the queue.
+
+### 8.2 Dead-Letter Queue (DLQ) & Permanent Errors
+If a job exceeds 5 attempts or encounters a permanent error (e.g. invalid domain, recipient quota exceeded):
+1. The DLQ consumer marks the grant status as `manual_review` and records the error code.
+2. Once the issue is investigated (e.g., buyer provided a typo'd email), the admin can click **Retry** on the **Drive Access Grants** tab to reset the counter and re-dispatch.
+
+### 8.3 Cron Scheduled Self-Healing
+Every 60 seconds (`* * * * *`), the recovery cron runs:
+- Finds outbox jobs with status `pending` or `retry` where `next_attempt_at <= NOW()`.
+- Re-enqueues stranded jobs (e.g., if Cloudflare Queues suffered transient downtime).
+- Prevents infinite loops by capping attempts at 5 and escalating exhausted jobs to `manual_review`.
+
+---
+
+## 9. Standards & Development Guidelines
 
 Every contributor and automated agent must follow the guidelines codified in:
 - [STANDARDS.md](file:///d:/NVPs/paylink-entitlements/STANDARDS.md):
@@ -175,6 +339,7 @@ Every contributor and automated agent must follow the guidelines codified in:
 
 ---
 
-## 8. License
+## 10. License
 
 MIT
+
