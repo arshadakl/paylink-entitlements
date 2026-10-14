@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { 
   WebhookEvent, 
+  WebhookProcessingStatus,
   Payment, 
   AccessGrant, 
   OutboxJob, 
@@ -46,7 +47,7 @@ export const razorpayPaymentLinkPaidPayloadSchema = z.object({
 export type RazorpayPaymentLinkPaidPayload = z.infer<typeof razorpayPaymentLinkPaidPayloadSchema>;
 
 export interface ProcessWebhookResult {
-  status: 'processed' | 'ignored' | 'unmapped' | 'manual_review' | 'failed';
+  status: WebhookProcessingStatus;
   reasonCode?: string;
   paymentId?: string;
   grantId?: string;
