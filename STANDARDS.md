@@ -77,6 +77,16 @@ Following the modern React 19 / industry standard guidelines:
   - Dates: Standard localized ISO date-time display with clear relative/absolute formatting.
 - **Accessibility & Design**: Semantic HTML elements (`<main>`, `<nav>`, `<table>`, `<dialog>`), keyboard accessibility, clear focus states, contrast-compliant modern design.
 
+### 2.5 Tailwind CSS & shadcn/ui Component Standards
+- **Framework**: Tailwind CSS v3.4 configured with PostCSS and `tailwindcss-animate`.
+- **Component Pattern (shadcn/ui)**:
+  - Base UI components reside in `frontend/src/components/ui/` (`button.tsx`, `card.tsx`, `badge.tsx`, `input.tsx`, `table.tsx`, etc.).
+  - Variant management via `class-variance-authority` (`cva`).
+  - Class name merging via `cn(...)` in `src/lib/utils.ts` (`clsx` + `twMerge`).
+  - Strict HSL CSS variable tokens defined in `src/index.css` for consistent dark theme contrast.
+  - Icons provided exclusively by `lucide-react`.
+
+
 ---
 
 ## 3. Backend Standards (Cloudflare Workers, Hono, D1, Queues)
