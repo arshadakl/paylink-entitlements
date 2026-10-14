@@ -67,6 +67,20 @@ export const paymentsRepository = {
       .run();
   },
 
+  async updateAccessStatusByProductAndEmail(
+    db: D1Database,
+    productId: string,
+    normalizedEmail: string,
+    status: AccessStatus
+  ): Promise<void> {
+    await db
+      .prepare(
+        'UPDATE payments SET access_status = ?, updated_at = ? WHERE product_id = ? AND normalized_email = ?'
+      )
+      .bind(status, new Date().toISOString(), productId, normalizedEmail)
+      .run();
+  },
+
   async resolveBuyerEmail(
     db: D1Database,
     paymentId: string,
