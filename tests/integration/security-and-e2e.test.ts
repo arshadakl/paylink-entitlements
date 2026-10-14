@@ -63,7 +63,7 @@ describe('Security Acceptance & End-to-End Fulfillment Suite (Section 14.6)', ()
       ADMIN_PASSWORD: 'secure_password_123',
       ADMIN_SESSION_SECRET: '01234567890123456789012345678901',
       GOOGLE_SERVICE_ACCOUNT_EMAIL: 'service@project.iam.gserviceaccount.com',
-      GOOGLE_PRIVATE_KEY: 'test_key',
+      GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: 'test_key',
     };
   });
 
@@ -273,12 +273,13 @@ describe('Security Acceptance & End-to-End Fulfillment Suite (Section 14.6)', ()
       vi.spyOn(grantsRepository, 'acquireLease').mockResolvedValue(true);
       vi.spyOn(googleDriveService, 'grantFolderReaderAccess').mockResolvedValue({
         permissionId: 'perm_gdrive_reader_e2e_999',
+        alreadyExisted: false,
       });
       vi.spyOn(grantsRepository, 'markGranted').mockResolvedValue(undefined);
       vi.spyOn(paymentsRepository, 'updateAccessStatusByProductAndEmail').mockResolvedValue(undefined);
       vi.spyOn(jobsRepository, 'markCompleted').mockResolvedValue(undefined);
 
-      const queueBatch: MessageBatch<{ grantId: string; outboxJobId: string }> = {
+      const queueBatch = {
         queue: 'drive-access-grants',
         messages: [
           {
@@ -295,9 +296,9 @@ describe('Security Acceptance & End-to-End Fulfillment Suite (Section 14.6)', ()
         ],
         ackAll: vi.fn(),
         retryAll: vi.fn(),
-      };
+      } as unknown as MessageBatch<{ grantId: string; outboxJobId: string }>;
 
-      await worker.queue(queueBatch, mockEnv, ctx);
+      await worker.queue(queueBatch, mockEnv);
 
       // Verify Google Drive API was called with correct parameters
       expect(googleDriveService.grantFolderReaderAccess).toHaveBeenCalledWith(
